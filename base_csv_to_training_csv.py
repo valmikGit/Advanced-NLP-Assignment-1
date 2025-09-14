@@ -16,61 +16,41 @@ def process_csv(input_file, output_file):
         winner = row["winner"]
         qid = row["question_id"]
 
-        # Resolve winner to actual model name or "tie"
+        def build_row(prefix, winner_model):
+            """Helper to build one row for the given conversation prefix and winner model."""
+            if turn == 1:
+                return {
+                    "question_id": qid,
+                    "turn": turn,
+                    "turn_1_query": row[f"{prefix}_turn_1_query"],
+                    "turn_1_answer": None,
+                    "turn_2_query": None,
+                    "winner": winner_model
+                }
+            elif turn == 2:
+                return {
+                    "question_id": qid,
+                    "turn": turn,
+                    "turn_1_query": row[f"{prefix}_turn_1_query"],
+                    "turn_1_answer": row[f"{prefix}_turn_1_answer"],
+                    "turn_2_query": row[f"{prefix}_turn_2_query"],
+                    "winner": winner_model
+                }
+            else:
+                return None
+
+        # Case 1: Clear winner
         if winner == "model_a":
-            winner_model = row["model_a"]
-            prefix = "conversation_a"
+            new_rows.append(build_row("conversation_a", row["model_a"]))
         elif winner == "model_b":
-            winner_model = row["model_b"]
-            prefix = "conversation_b"
-        else:
-            winner_model = "tie"
-            prefix = "conversation_a"  # If tie data corresponding to model a is populated.
+            new_rows.append(build_row("conversation_b", row["model_b"]))
 
-        # Build new row depending on turn and winner
-        if turn == 1:
-            if winner_model == "tie":
-                new_row = {
-                    "question_id": qid,
-                    "turn": turn,
-                    "turn_1_query": row[f"{prefix}_turn_1_query"],
-                    "turn_1_answer": None,
-                    "turn_2_query": None,
-                    "winner": "tie"
-                }
-            else:
-                new_row = {
-                    "question_id": qid,
-                    "turn": turn,
-                    "turn_1_query": row[f"{prefix}_turn_1_query"],
-                    "turn_1_answer": None,
-                    "turn_2_query": None,
-                    "winner": winner_model
-                }
-
-        elif turn == 2:
-            if winner_model == "tie":
-                new_row = {
-                    "question_id": qid,
-                    "turn": turn,
-                    "turn_1_query": row[f"{prefix}_turn_1_query"],
-                    "turn_1_answer": row[f"{prefix}_turn_1_answer"],
-                    "turn_2_query": row[f"{prefix}_turn_2_query"],
-                    "winner": "tie"
-                }
-            else:
-                new_row = {
-                    "question_id": qid,
-                    "turn": turn,
-                    "turn_1_query": row[f"{prefix}_turn_1_query"],
-                    "turn_1_answer": row[f"{prefix}_turn_1_answer"],
-                    "turn_2_query": row[f"{prefix}_turn_2_query"],
-                    "winner": winner_model
-                }
-        else:
-            continue  # skip unexpected turn values
-
-        new_rows.append(new_row)
+        # Case 2: Tie → create TWO rows (one per model)
+        elif str(winner).strip().lower() == "tie":
+            row_a = build_row("conversation_a", row["model_a"])
+            row_b = build_row("conversation_b", row["model_b"])
+            if row_a: new_rows.append(row_a)
+            if row_b: new_rows.append(row_b)
 
     # Convert to dataframe
     new_df = pd.DataFrame(new_rows, columns=[
