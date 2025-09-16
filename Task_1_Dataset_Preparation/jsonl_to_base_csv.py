@@ -2,7 +2,7 @@ import json
 import pandas as pd
 
 # Input and output file paths
-INPUT_FILE = "mt_bench_human_judgements.jsonl"
+INPUT_FILE = "Task_1_Dataset_Preparation\mt_bench_human_judgements.jsonl"
 OUTPUT_FILE = "mt_bench_human_judgements.csv"
 
 def extract_content(conv_list, index):
